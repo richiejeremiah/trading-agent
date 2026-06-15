@@ -1,0 +1,62 @@
+/**
+ * Somo — canonical design tokens (marketing, patient, consumer surfaces)
+ * Font: load League Spartan per surface (@fontsource in somo-landing, link tags elsewhere).
+ */
+
+:root {
+  --somo-green: #16a637;
+  --somo-green-hover: #128a2e;
+  --somo-green-soft: #e8f7ed;
+  --somo-green-mid: #bbf7d0;
+  --somo-ink: #0a0a0a;
+  --somo-surface: #111111;
+  --somo-text: #ffffff;
+  --somo-muted: #9ca3af;
+  --font-brand: 'League Spartan', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Aliases for legacy --brand-* imports */
+  --brand-accent: var(--somo-green);
+  --brand-accent-hover: var(--somo-green-hover);
+  --brand-black: var(--somo-ink);
+  --brand-gray: var(--somo-muted);
+  --brand-white: var(--somo-text);
+  --brand-border: #e5e7eb;
+  --brand-cream: #f9fafb;
+  --brand-assistant-bubble: var(--somo-green-soft);
+  --brand-header-h: 72px;
+  --font-ui: var(--font-brand);
+  --font-display: var(--font-brand);
+  --radius-pill: 999px;
+  --radius-card: 20px;
+  --radius-panel: 14px;
+  --shadow-nav: 0 22px 40px rgba(0, 0, 0, 0.08);
+  --shadow-soft: 0 4px 16px rgba(0, 0, 0, 0.06);
+  --cc-step-idle-bg: #f9fafb;
+  --cc-step-idle-border: #e5e7eb;
+  --cc-step-active-bg: var(--somo-green-soft);
+  --cc-step-active-border: var(--somo-green-mid);
+  --cc-step-active-color: #14532d;
+  --cc-step-done-bg: var(--somo-green-soft);
+  --cc-step-done-border: var(--somo-green-mid);
+  --cc-step-done-color: #166534;
+  --primary: var(--somo-green);
+  --primary-hover: var(--somo-green-hover);
+
+  /* Marketing landing (Image 1: MSU Green + Green Lizard) */
+  --somo-msu: #164437;
+  --somo-lizard: #b5e930;
+  --somo-lizard-hover: #9fd628;
+  --somo-grass: #238108;
+  --somo-lizard-10: #f4fbe8;
+  --somo-lizard-20: #e8f7d0;
+  --somo-rail-gradient: linear-gradient(180deg, #b5e930 0%, #238108 55%, #164437 100%);
+  --somo-green-marketing: var(--somo-lizard);
+  --somo-green-marketing-hover: var(--somo-lizard-hover);
+  --somo-green-marketing-dark: var(--somo-msu);
+  --somo-bg-marketing: #fbf9f4;
+  --somo-text-marketing: #1a1a1a;
+  --somo-muted-marketing: #6b6b6b;
+  --somo-border-marketing: #e8e4dc;
+  --somo-cap-surface: var(--somo-lizard-10);
+  --somo-cap-border: #d0ddd6;
+}

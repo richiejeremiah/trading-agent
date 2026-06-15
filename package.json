@@ -1,0 +1,12 @@
+{
+  "name": "trading-agent",
+  "version": "4.0.0",
+  "private": true,
+  "scripts": {
+    "start": "npm start --prefix middleware-platform",
+    "dev": "npm run dev --prefix middleware-platform",
+    "test": "npm test --prefix middleware-platform",
+    "verify:trading-shell": "npm run verify:trading-shell --prefix middleware-platform",
+    "ci:local": "npm run verify:trading-shell --prefix middleware-platform && npm test --prefix middleware-platform"
+  }
+}

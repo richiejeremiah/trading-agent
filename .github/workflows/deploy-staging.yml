@@ -1,0 +1,22 @@
+name: Deploy staging
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20.x
+          cache: npm
+          cache-dependency-path: middleware-platform/package-lock.json
+      - name: Install and verify
+        working-directory: middleware-platform
+        run: |
+          npm ci
+          npm run verify:trading-shell
+      - name: Deploy note
+        run: echo "Wire Cloud Run deploy for somo-trading when ready"

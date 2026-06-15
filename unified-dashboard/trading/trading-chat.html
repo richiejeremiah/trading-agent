@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Somo Trading — Paper Mode</title>
+  <link rel="stylesheet" href="../assets/css/global.css" />
+  <link rel="stylesheet" href="../assets/css/somo-tokens.css" />
+  <link rel="stylesheet" href="trading-chat.css" />
+  <script src="../assets/js/config.js" defer></script>
+</head>
+<body class="tc-body">
+  <header class="tc-header">
+    <div class="tc-brand">Somo Trading</div>
+    <span class="tc-badge" id="modeBadge">PAPER MODE</span>
+  </header>
+
+  <aside class="tc-disclaimer" role="note">
+    Not financial advice. For research and paper trading only. Live execution is disabled in this build.
+  </aside>
+
+  <main class="tc-main">
+    <div id="chatLog" class="tc-log" aria-live="polite"></div>
+    <form id="chatForm" class="tc-form">
+      <input id="chatInput" type="text" placeholder="Ask about biotech news or tickers…" autocomplete="off" />
+      <button type="submit" id="sendBtn">Send</button>
+    </form>
+    <p id="statusLine" class="tc-status">Agent shell loaded. Chat API returns 501 until TRADING_AGENT_ENABLED=1.</p>
+  </main>
+
+  <script src="trading-chat.js" defer></script>
+</body>
+</html>

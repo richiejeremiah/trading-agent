@@ -1,0 +1,141 @@
+# Dependencies
+node_modules/
+
+# Build output
+unified-dashboard/hosting-dist/
+unified-dashboard/somo-landing/build/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Local provider sign-in (never commit)
+local/provider-login.credentials
+local/*.gstmp
+local/*.db_.gstmp
+
+# PR worktrees (local only — not source of truth)
+.pr-worktrees/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+.env.bak
+*.env.bak
+.env.bak2
+*.env.bak2
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+middleware-platform/*.db
+merchant-shop/*.db
+
+# Local gcloud CLI cache (often created in-repo by mistake)
+.gcloud-tmp/
+
+# Playwright browser bundles (local only)
+middleware-platform/.playwright-browsers/
+.playwright-browsers/
+
+# Accidental root-level sqlite sidecars (same DB opened from repo root)
+/middleware-dev.db-shm
+/middleware-dev.db-wal
+
+# Random local media drops
+download*.mp4
+
+# Database backups
+backups/
+middleware-platform/backups/
+
+# Local sqlite in-memory artifact created by tooling
+middleware-platform/:memory:
+
+# Recovery files and secrets
+*recovery*.json
+*recovery*.dat
+circle-entity-secret*.json
+recovery_file*.dat
+SECRETS_BACKUP.md
+docs/SECRETS_BACKUP.md
+
+# Logs
+logs/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode / caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Local UI / Playwright debug captures (do not commit)
+e2e-debug-*.png
+.tmp-*.png
+
+# Playwright & test artifacts (repo root and packages)
+/test-results/
+middleware-platform/test-results/
+unified-dashboard/littlelab-landing/test-results/
+unified-dashboard/littlelab-landing/playwright-report/
+playwright-report/
+
+# Build outputs
+dist/
+build/
+*.zip
+
+# ML / ONNX weights (local dev; use Git LFS + force-add if you must commit)
+*.pt
+*.pth
+*.onnx
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.html.bak
+
+# Middleware artifacts (local runs)
+middleware-platform/test-results/
+middleware-platform/uploads/
+
+# Payor / NPPES bulk inputs (symlinks + data; keep README.md tracked)
+middleware-platform/data/payor-sources/*
+!middleware-platform/data/payor-sources/README.md
+
+# Local scratch (do not commit)
+/step0.md
+/step1b
+middleware-platform/reports/
+.pr-worktrees/
+.pr-patches/
+.sandbox-trial/
+
+# Railway/Netlify
+.railway/
+.netlify/
+
+# Test files (optional - uncomment if you don't want to commit tests)
+# tests/
+# *.test.js
+
+# Embedded git repo (use submodule or clone separately)
+medical-rag-api/
+teamkelly/
+:memory:-*

@@ -1,0 +1,102 @@
+.tc-body {
+  font-family: Inter, system-ui, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  background: var(--somo-bg, #0f1419);
+  color: var(--somo-text, #e7ecf1);
+}
+
+.tc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tc-brand {
+  font-weight: 600;
+  font-size: 1.1rem;
+}
+
+.tc-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.6rem;
+  border-radius: 999px;
+  background: #1a3d2e;
+  color: #6ee7a8;
+}
+
+.tc-disclaimer {
+  margin: 0;
+  padding: 0.65rem 1.25rem;
+  font-size: 0.8rem;
+  background: #2a2210;
+  color: #f5d565;
+  border-bottom: 1px solid rgba(245, 213, 101, 0.2);
+}
+
+.tc-main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 1rem 1.25rem 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  min-height: calc(100vh - 120px);
+}
+
+.tc-log {
+  flex: 1;
+  min-height: 280px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 1rem;
+  overflow-y: auto;
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.tc-msg {
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.tc-msg-user {
+  color: #a5d8ff;
+}
+
+.tc-msg-assistant {
+  color: #e7ecf1;
+}
+
+.tc-form {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.tc-form input {
+  flex: 1;
+  padding: 0.65rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: #1a222c;
+  color: inherit;
+}
+
+.tc-form button {
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  border: none;
+  background: #2563eb;
+  color: #fff;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tc-status {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0;
+}
