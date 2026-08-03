@@ -25,6 +25,22 @@ function getDb() {
 function runMigrations(db) {
   const migration = require('./migrations/001_trading_platform_init');
   migration.up(db);
+  const migration2 = require('./migrations/002_investment_agent_init');
+  migration2.up(db);
+  const migration3 = require('./migrations/003_knowledge_graph');
+  migration3.up(db);
+  const migration4 = require('./migrations/004_kg_event');
+  migration4.up(db);
+  const migration5 = require('./migrations/005_identity');
+  migration5.up(db);
+  const migration6 = require('./migrations/006_wallet_and_recommendations');
+  migration6.up(db);
+  const migration7 = require('./migrations/007_benchmark');
+  migration7.up(db);
+  const migration8 = require('./migrations/008_strategy');
+  migration8.up(db);
+  const migration9 = require('./migrations/009_trade_lifecycle');
+  migration9.up(db);
 }
 
 function closeDb() {

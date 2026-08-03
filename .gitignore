@@ -139,3 +139,10 @@ middleware-platform/reports/
 medical-rag-api/
 teamkelly/
 :memory:-*
+
+.env
+data/
+*.sqlite
+*.sqlite-*
+.agent/
+node_modules/

@@ -3,7 +3,7 @@
 const TRADING_LANE = {
   RESEARCH: 'research',
   SIGNAL: 'signal',
-  EXECUTE: 'execute',
+  // EXECUTE: 'execute' — Rail 3 CANCELLED
   REVIEW: 'review',
   GUARD: 'guard',
 };

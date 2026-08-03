@@ -1,6 +1,7 @@
 'use strict';
 
 const path = require('path');
+const telegramBot = require('./services/telegram-bot');
 require('dotenv').config({ path: path.join(__dirname, '.env') });
 require('./utils/langsmith-config');
 
@@ -43,3 +44,24 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+
+// Started last, and only when both are set. A bot with no agent behind it is
+// worse than no bot.
+if (process.env.TELEGRAM_BOT_TOKEN && process.env.TRADING_AGENT_ENABLED === '1') {
+  telegramBot.start();
+}
+
+
+// The daily cycle. Off unless asked for, because a process that trades on a
+// timer should be started deliberately.
+if (process.env.SCHEDULER_ENABLED === '1') {
+  const scheduler = require('./services/scheduler');
+  scheduler.start(async (chatId, text) => {
+    try {
+      await telegramBot.notify(chatId, text, true);
+    } catch (e) {
+      console.warn('[scheduler] notify failed:', e.message);
+    }
+  });
+}

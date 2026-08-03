@@ -9,10 +9,7 @@ const ALLOWLISTS = {
     analyze: ['generate_signal'],
     preview: ['generate_signal'],
   },
-  execute: {
-    confirm: ['paper_preview_order'],
-    submit: ['paper_submit_order'],
-  },
+  // execute lane (Rail 3) — CANCELLED
   review: {
     portfolio: ['get_portfolio', 'get_trade_history'],
     postmortem: ['get_trade_history'],
