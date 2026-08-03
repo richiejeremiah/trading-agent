@@ -479,9 +479,7 @@ function completedTrades(portfolio, identityId) {
 /** Sell the position and credit the wallet when a user trade exits by rule. */
 function settleUserExit(db, t, exitPrice, proceeds) {
   try {
-    db.prepare(
-      "UPDATE paper_positions SET quantity = 0, updated_at = datetime('now') WHERE identity_id IS ? AND ticker = ?"
-    ).run(t.identity_id, t.ticker);
+    // The trade row is the position — closing it closes both.
 
     const w = db.prepare('SELECT cash FROM agent_wallet WHERE identity_id = ?').get(t.identity_id);
     if (!w) return;

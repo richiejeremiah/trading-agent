@@ -28,6 +28,7 @@
 
 const { getDb } = require('../database');
 const { getCurrentPrice, getHistoricalPrices } = require('./market-data-client');
+const { positionsFor } = require('./positions');
 
 const BENCHMARK = (process.env.PAPER_BENCHMARK || 'XLV').toUpperCase();
 
@@ -146,9 +147,7 @@ async function portfolioVsBenchmark(identityId) {
   // Portfolio value, counting only positions in the wallet's currency — the
   // same rule getWalletSummary uses, for the same reason.
   const walletCurrency = (wallet.currency || 'USD').toUpperCase();
-  const positions = db
-    .prepare('SELECT ticker, quantity, avg_cost FROM paper_positions WHERE identity_id IS ? AND quantity > 0')
-    .all(identityId);
+  const positions = positionsFor(identityId, 'user');
 
   let holdings = 0;
   let uncounted = 0;

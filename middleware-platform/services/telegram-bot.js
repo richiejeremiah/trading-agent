@@ -344,6 +344,14 @@ async function handleMessage(msg) {
   }
 
   if (text === '/reconcile') {
+    // Nothing to reconcile: positions are derived from trades rather than kept
+    // alongside them. This command existed because two records of the same fact
+    // could disagree, and they could disagree because there were two.
+    await say(chatId, 'Positions are derived from trades — one source of truth now, so there is nothing to reconcile. Use /open.');
+    return;
+  }
+
+  if (false) {
     // The wallet and the trade record describe the same positions from two
     // tables. Nothing guarantees they agree, and a silent divergence would
     // make one of them wrong without saying which.

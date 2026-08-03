@@ -118,10 +118,13 @@ function subSectorOf(ticker) {
 function concentrationCheck(db, identityId, ticker) {
   const sector = subSectorOf(ticker);
 
-  const held = db
-    .prepare('SELECT ticker FROM paper_positions WHERE identity_id IS ? AND quantity > 0')
-    .all(identityId ?? null)
-    .filter((p) => subSectorOf(p.ticker) === sector);
+  // Both portfolios. This counted paper_positions, which the research side
+  // never wrote to — so research positions were invisible to the cap and it
+  // could hold any number in one sub-sector while reporting no concentration.
+  const { allHeldTickers } = require('./positions');
+  const held = allHeldTickers(identityId)
+    .filter((t) => subSectorOf(t) === sector)
+    .map((t) => ({ ticker: t }));
 
   if (held.length >= MAX_PER_SUB_SECTOR) {
     return {

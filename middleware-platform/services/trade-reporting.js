@@ -411,8 +411,7 @@ async function closeTrade(identityId, tradeId) {
      WHERE id = ?`
   ).run(price, Number(pnl.toFixed(2)), Number(((pnl / t.net_notional) * 100).toFixed(3)), t.id);
 
-  db.prepare("UPDATE paper_positions SET quantity = 0, updated_at = datetime('now') WHERE identity_id IS ? AND ticker = ?")
-    .run(t.identity_id, t.ticker);
+  // Closing the trade closes the position; there is no second record.
 
   const w = db.prepare('SELECT cash FROM agent_wallet WHERE identity_id = ?').get(t.identity_id);
   if (w) {

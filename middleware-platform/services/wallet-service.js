@@ -24,6 +24,7 @@
 const { getDb } = require('../database');
 const { getCurrentPrice } = require('./market-data-client');
 const policy = require('./policy');
+const { positionsFor, positionFor } = require('./positions');
 const { getDb: _db } = require('../database');
 
 const STARTING_BALANCE = Number(process.env.PAPER_STARTING_BALANCE || 100000);
@@ -182,12 +183,11 @@ async function acceptRecommendation(identityId, recId, notionalUsd) {
     );
   }
 
-  const position = db
-    .prepare('SELECT * FROM paper_positions WHERE identity_id IS ? AND ticker = ?')
-    .get(identityId ?? null, rec.ticker);
+  const position = positionFor(identityId, rec.ticker, 'user');
 
   let notional;
   let quantity;
+  let __pendingCash = 0;
 
   if (rec.side === 'buy') {
     // An explicit amount overrides, but the default is the same every time.
@@ -237,41 +237,59 @@ async function acceptRecommendation(identityId, recId, notionalUsd) {
       const newQty = prevQty + quantity;
       const newAvg = (prevCost + notional) / newQty;
 
-      db.prepare(
-        `INSERT INTO paper_positions (identity_id, ticker, quantity, avg_cost, updated_at)
-         VALUES (?, ?, ?, ?, ?)
-         ON CONFLICT(identity_id, ticker) DO UPDATE SET quantity = ?, avg_cost = ?, updated_at = ?`
-      ).run(identityId ?? null, rec.ticker, newQty, newAvg, t, newQty, newAvg, t);
+      // Nothing to write. The position is derived from the trade row created
+      // below — one fact, one place. Keeping a running total alongside it was
+      // how the two ledgers came to disagree.
 
-      moveCash(identityId, -notional, 'buy', 'order', order.lastInsertRowid, rec.ticker);
+      // Cash is held rather than moved. It used to move here, twenty lines
+      // before the trade was recorded, so a failed insert left the wallet
+      // debited for a trade that never existed — the call refused and took
+      // the money anyway.
+      // The cost comes out of cash too. It was recorded on the trade row and
+      // not deducted, so the wallet and the trade disagreed about what the fill
+      // had cost — the same divergence, one layer down.
+      __pendingCash = -(notional + (notional * 15) / 10000);
     } else {
-      db.prepare(
-        'UPDATE paper_positions SET quantity = 0, updated_at = ? WHERE identity_id IS ? AND ticker = ?'
-      ).run(t, identityId ?? null, rec.ticker);
+      // Closing the trade is the sale; there is no separate total to zero.
 
-      moveCash(identityId, notional, 'sell', 'order', order.lastInsertRowid, rec.ticker);
+      __pendingCash = notional;
     }
 
-    db.prepare("UPDATE agent_recommendation SET status = 'accepted', decided_at = ? WHERE id = ?").run(
-      t,
-      rec.id
-    );
+    // All of it, or none. These were separate writes in sequence with nothing
+    // tying them together, so a failure partway through left the wallet
+    // debited for a trade that was never recorded. better-sqlite3 rolls back
+    // on a throw, which is exactly the guarantee needed.
+    db.transaction(() => {
+      moveCash(
+        identityId,
+        __pendingCash,
+        __pendingCash < 0 ? 'buy' : 'sell',
+        'order',
+        order.lastInsertRowid,
+        rec.ticker
+      );
 
-    // The measurement record, alongside the wallet's own state. Written in the
-    // same breath as the fill so the two cannot describe different things.
-    openUserTrade(db, {
-      identityId,
-      recommendationId: rec.id,
-      ticker: rec.ticker,
-      strategy: rec.strategy,
-      side: rec.side,
-      signalPrice: rec.price_at_rec,
-      fillPrice: price,
-      quantity,
-      notional,
-      benchAtFill: rec.bench_at_rec,
-      clusterId: rec.cluster_id || null,
-    });
+      db.prepare("UPDATE agent_recommendation SET status = 'accepted', decided_at = ? WHERE id = ?").run(
+        t,
+        rec.id
+      );
+  
+      // The measurement record, alongside the wallet's own state. Written in the
+      // same breath as the fill so the two cannot describe different things.
+      openUserTrade(db, {
+        identityId,
+        recommendationId: rec.id,
+        ticker: rec.ticker,
+        strategy: rec.strategy,
+        side: rec.side,
+        signalPrice: rec.price_at_rec,
+        fillPrice: price,
+        quantity,
+        notional,
+        benchAtFill: rec.bench_at_rec,
+        clusterId: rec.cluster_id || null,
+      });
+    })();
 
     return {
       ok: true,
@@ -315,9 +333,7 @@ async function getWalletSummary(identityId) {
   const wallet = ensureWallet(identityId);
   const walletCurrency = (wallet.currency || WALLET_CURRENCY).toUpperCase();
 
-  const positions = db
-    .prepare('SELECT ticker, quantity, avg_cost FROM paper_positions WHERE identity_id IS ? AND quantity > 0')
-    .all(identityId ?? null);
+  const positions = positionsFor(identityId, 'user');
 
   const marked = [];
   let holdingsValue = 0;
@@ -438,7 +454,7 @@ function openUserTrade(db, o) {
           quantity, gross_notional, costs, net_notional,
           bench_symbol, bench_at_fill, exit_rule, planned_exit_at, cluster_id, status)
        VALUES (?, 'user', ?, ?, ?, ?, datetime('now'), ?, datetime('now'), ?, ?,
-               ?, ?, 0, ?, ?, ?, ?, ?, ?, 'open')`
+               ?, ?, ?, ?, ?, ?, ?, ?, ?, 'open')`
     ).run(
       o.identityId ?? null,
       o.recommendationId ?? null,

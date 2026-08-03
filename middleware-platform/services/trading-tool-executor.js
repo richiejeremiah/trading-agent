@@ -24,6 +24,7 @@
 const { getAllowedToolNames } = require('./trading-rails/tool-allowlists');
 const { getCurrentPrice } = require('./market-data-client');
 const { getDb } = require('../database');
+const { positionsFor } = require('./positions');
 
 function fail(code, message) {
   const err = new Error(message);
@@ -61,11 +62,7 @@ async function getPortfolio(_args, context) {
 
   // `IS` rather than `=` so a null owner matches null — the rows that predate
   // identities stay reachable rather than becoming invisible.
-  const rows = db
-    .prepare(
-      'SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions WHERE quantity != 0 AND identity_id IS ?'
-    )
-    .all(identityId);
+  const rows = positionsFor(identityId, 'user');
 
   if (rows.length === 0) {
     return { positions: [], total_cost: 0, total_value: null, note: 'No open positions.' };
