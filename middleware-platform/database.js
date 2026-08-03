@@ -41,6 +41,8 @@ function runMigrations(db) {
   migration8.up(db);
   const migration9 = require('./migrations/009_trade_lifecycle');
   migration9.up(db);
+  const migration10 = require('./migrations/010_policy_trace');
+  migration10.up(db);
 }
 
 function closeDb() {

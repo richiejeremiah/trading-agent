@@ -76,6 +76,7 @@ const HELP = [
   '  /open — what is running now',
   '  /excluded — trades left out of the results',
   '  /health — are the data sources sound',
+  '  /guards — what the rules refused, and how often',
   '  /close N — close one of your positions now',
   '  /slippage — signal price versus fill price',
   '  /reconcile — do the wallet and trade records agree',
@@ -310,6 +311,31 @@ async function handleMessage(msg) {
 
   if (text === '/excluded') {
     await say(chatId, report.invalidTrades(), true);
+    return;
+  }
+
+  if (text === '/guards') {
+    const p = require('./policy');
+    const g = p.guardCounts({ days: 7 });
+    const L = ['<b>Guards</b>', '', '<i>Last 7 days</i>', ''];
+    L.push('<code>' + String(g.evaluated).padStart(5) + '  evaluated</code>');
+    L.push('<code>' + String(g.allowed).padStart(5) + '  allowed</code>');
+    if (g.by_guard.length) {
+      L.push('');
+      for (const x of g.by_guard) {
+        L.push('<code>' + String(x.refused).padStart(5) + '  ' + x.guard.padEnd(16) + x.share_pct + '%</code>');
+      }
+    } else {
+      L.push('');
+      L.push('Nothing refused.');
+    }
+    // A guard at either extreme is usually a bug rather than a strict policy,
+    // and neither announces itself.
+    if (g.notes.length) {
+      L.push('');
+      for (const n of g.notes) L.push('<i>' + report.esc(n) + '</i>');
+    }
+    await say(chatId, L.join('\n'), true);
     return;
   }
 

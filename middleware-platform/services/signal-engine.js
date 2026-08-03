@@ -302,7 +302,13 @@ async function runSignals(identityId, { verbose = true } = {}) {
       '[signals] ' + events.length + ' from FDA events, ' + reversion.length + ' from relative weakness'
     );
     for (const r of all) console.log('  #' + r.id + '  ' + r.ticker + '  ' + r.strategy);
-    if (all.length === 0) console.log('  nothing met the thresholds today');
+    if (all.length === 0) {
+      // 'Nothing met the thresholds' does not distinguish a quiet market from a
+      // guard refusing everything. Say which.
+      const g = require('./policy').guardCounts({ days: 1, action: 'recommend' });
+      const why = g.by_guard.map((x) => x.guard + ' ' + x.refused).join(', ');
+      console.log('  nothing met the thresholds today' + (why ? ' — refused by ' + why : ''));
+    }
   }
 
   return { ok: true, data: { generated: all.length, recommendations: all } };

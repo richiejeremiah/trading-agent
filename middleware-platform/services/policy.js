@@ -202,13 +202,138 @@ function evaluate(action, context) {
     if (reason) refusals.push({ guard: rule.name, reason });
   }
 
-  return {
+  const verdict = {
     allowed: refusals.length === 0,
     refusals,
     // The first reason, for somewhere a single line has to do.
     reason: refusals.length ? refusals[0].reason : null,
     action,
   };
+
+  recordDecision(action, ctx, verdict);
+
+  return verdict;
+}
+
+/**
+ * Write down what was decided.
+ *
+ * Inside evaluate rather than at the five call sites, because a call site that
+ * forgets to log leaves a gap nobody notices. This way a new caller is traced
+ * whether or not its author thought about it.
+ *
+ * Failures here are swallowed. A trace that breaks a decision is worse than no
+ * trace — the log exists to explain the system, not to be part of it.
+ */
+function recordDecision(action, ctx, verdict) {
+  try {
+    getDb()
+      .prepare(
+        `INSERT INTO policy_decision
+           (action, ticker, identity_id, portfolio, allowed, refused_by, reason)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`
+      )
+      .run(
+        action,
+        ctx.ticker || null,
+        ctx.identityId ?? null,
+        ctx.portfolio || null,
+        verdict.allowed ? 1 : 0,
+        verdict.refusals.length ? verdict.refusals.map((r) => r.guard).join(',') : null,
+        verdict.reason
+      );
+  } catch {
+    // Deliberately silent.
+  }
+}
+
+/**
+ * How often each guard fired, and against what.
+ *
+ * The question this answers: when nothing generated today, was the market
+ * quiet or was a guard refusing everything? Without it that took replaying the
+ * evaluations by hand.
+ *
+ * It is also the check on the guards. One that fires on every evaluation is as
+ * broken as one that never fires, and neither announces itself — three shipped
+ * broken this week and the only reason any was caught was a number looking
+ * wrong somewhere else.
+ */
+function guardCounts({ days = 7, action = null } = {}) {
+  const db = getDb();
+
+  const where = ["decided_at > datetime('now', '-' || ? || ' days')"];
+  const params = [days];
+  if (action) {
+    where.push('action = ?');
+    params.push(action);
+  }
+  const clause = where.join(' AND ');
+
+  const total = db
+    .prepare('SELECT COUNT(*) n, SUM(allowed) a FROM policy_decision WHERE ' + clause)
+    .get(...params);
+
+  const evaluated = total.n || 0;
+  const allowed = total.a || 0;
+
+  // A guard can appear alongside others, so the counts sum to more than the
+  // number of refusals. That is the honest shape: two guards refusing the same
+  // signal is two facts, not half a fact each.
+  const rows = db
+    .prepare('SELECT refused_by FROM policy_decision WHERE ' + clause + ' AND refused_by IS NOT NULL')
+    .all(...params);
+
+  const counts = {};
+  for (const r of rows) {
+    for (const g of String(r.refused_by).split(',')) {
+      counts[g] = (counts[g] || 0) + 1;
+    }
+  }
+
+  const byGuard = Object.entries(counts)
+    .map(([guard, n]) => ({
+      guard,
+      refused: n,
+      // Against everything evaluated, not against refusals — the denominator
+      // that tells you whether a rule is doing a little or almost all of the
+      // filtering.
+      share_pct: evaluated ? Number(((n / evaluated) * 100).toFixed(1)) : 0,
+    }))
+    .sort((a, b) => b.refused - a.refused);
+
+  // Said plainly, because a guard at either extreme is usually a bug rather
+  // than a strict policy.
+  const notes = [];
+  for (const g of byGuard) {
+    if (g.share_pct >= 95) {
+      notes.push(g.guard + ' refused ' + g.share_pct + '% of everything — check it is not broken');
+    }
+  }
+  const silent = require('./policy').rulesFor(action || 'recommend').filter((r) => !counts[r]);
+  if (evaluated >= 20 && silent.length) {
+    notes.push(silent.join(' and ') + ' never fired in ' + evaluated + ' evaluations');
+  }
+
+  return {
+    days,
+    action: action || 'all',
+    evaluated,
+    allowed,
+    refused: evaluated - allowed,
+    by_guard: byGuard,
+    notes,
+  };
+}
+
+/** Recent decisions, newest first — for when a count is not enough. */
+function recentDecisions(limit = 20) {
+  return getDb()
+    .prepare(
+      `SELECT decided_at, action, ticker, allowed, refused_by, reason
+       FROM policy_decision ORDER BY id DESC LIMIT ?`
+    )
+    .all(limit);
 }
 
 /** Which rules govern an action — for tests, and for explaining a refusal. */
@@ -216,4 +341,4 @@ function rulesFor(action) {
   return RULES.filter((r) => r.applies.includes(action)).map((r) => r.name);
 }
 
-module.exports = { evaluate, rulesFor, ACTIONS, RULES };
+module.exports = { evaluate, rulesFor, guardCounts, recentDecisions, ACTIONS, RULES };
