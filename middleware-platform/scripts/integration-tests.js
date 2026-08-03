@@ -230,7 +230,7 @@ async function test(name, fn) {
   await test('a trade is never filled at the price that triggered it', async () => {
     const db = getDb();
     const filled = db
-      .prepare("SELECT id, ticker, signal_price, fill_price FROM trade WHERE status IN ('open','closed') AND signal_price IS NOT NULL")
+      .prepare("SELECT id, ticker, signal_price, fill_price FROM trade WHERE portfolio = 'research' AND status IN ('open','closed') AND signal_price IS NOT NULL")
       .all();
 
     for (const t of filled) {

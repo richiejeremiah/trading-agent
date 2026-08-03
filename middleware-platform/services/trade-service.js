@@ -26,6 +26,7 @@
 const { getDb } = require('../database');
 const { getHistoricalPrices, getCurrentPrice } = require('./market-data-client');
 const { adjustmentFor } = require('./dividend-service');
+const policy = require('./policy');
 
 const BENCHMARK = (process.env.PAPER_BENCHMARK || 'XLV').toUpperCase();
 
@@ -215,7 +216,25 @@ async function fillPending({ notional, verbose = true } = {}) {
       invalid += 1;
       continue;
     }
-    if (quoteCcy !== PORTFOLIO_CURRENCY) {
+    // Currency and cash in one question. Both were checked here already,
+    // separately and in different styles; the policy layer is where a third
+    // rule would go without this file needing to know.
+    const verdict = policy.evaluate('fill', {
+      ticker: t.ticker,
+      identityId: t.identity_id,
+      portfolio: t.portfolio,
+      quoteCurrency: quoteCcy,
+      notional: Number(notional || process.env.PAPER_POSITION_SIZE || 5000),
+    });
+
+    if (!verdict.allowed) {
+      db.prepare("UPDATE trade SET status = 'invalid', invalid_reason = ?, updated_at = datetime('now') WHERE id = ?")
+        .run(verdict.refusals.map((r) => r.reason).join('; '), t.id);
+      invalid += 1;
+      continue;
+    }
+
+    if (false) {
       db.prepare("UPDATE trade SET status = 'invalid', invalid_reason = ?, updated_at = datetime('now') WHERE id = ?")
         .run(t.ticker + ' is quoted in ' + quoteCcy + ' and the portfolio holds ' + PORTFOLIO_CURRENCY, t.id);
       invalid += 1;

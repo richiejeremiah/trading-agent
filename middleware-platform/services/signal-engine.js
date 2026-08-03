@@ -33,6 +33,7 @@ const { getDb } = require('../database');
 const { getHistoricalPrices, getCurrentPrice } = require('./market-data-client');
 const { recordRecommendation } = require('./wallet-service');
 const { concentrationCheck } = require('./sub-sectors');
+const policy = require('./policy');
 
 const BENCHMARK = (process.env.PAPER_BENCHMARK || 'XLV').toUpperCase();
 
@@ -128,9 +129,7 @@ async function fdaOverreaction(identityId, benchQuotes) {
 
   for (const e of events) {
     if (out.length >= MAX_PER_RUN) break;
-    if (seen.has(e.ticker) || inCooldown(e.ticker, identityId)) continue;
-    const conc = concentrationCheck(db, identityId, e.ticker);
-    if (!conc.allowed) continue;
+    if (seen.has(e.ticker)) continue;
     seen.add(e.ticker);
 
     const series = await getHistoricalPrices(e.ticker, { range: '3mo', interval: '1d' });
@@ -153,7 +152,15 @@ async function fdaOverreaction(identityId, benchQuotes) {
     // the start of the measurement.
     const eventDate = publishedAt;
 
-    if (lagDays > MAX_EVENT_LAG_DAYS) continue;
+    // One question, asked once. Cooldown, concentration and staleness were
+    // three checks in three shapes; a fourth rule added to policy.js now
+    // applies here without this file changing.
+    const verdict = policy.evaluate('recommend', {
+      ticker: e.ticker,
+      identityId,
+      eventLagDays: lagDays,
+    });
+    if (!verdict.allowed) continue;
 
     const before = closeOnOrBefore(quotes, eventDate);
     const latest = quotes.length ? quotes[quotes.length - 1].close : null;
@@ -224,8 +231,7 @@ async function sectorMeanReversion(identityId, benchQuotes, budget) {
   const scored = [];
 
   for (const ticker of universe) {
-    if (inCooldown(ticker, identityId)) continue;
-    if (!concentrationCheck(db, identityId, ticker).allowed) continue;
+    if (!policy.evaluate('recommend', { ticker, identityId }).allowed) continue;
 
     const series = await getHistoricalPrices(ticker, { range: '3mo', interval: '1d' });
     await sleep(RATE_MS);

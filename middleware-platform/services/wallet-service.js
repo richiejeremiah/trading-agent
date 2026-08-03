@@ -23,6 +23,7 @@
 
 const { getDb } = require('../database');
 const { getCurrentPrice } = require('./market-data-client');
+const policy = require('./policy');
 const { getDb: _db } = require('../database');
 
 const STARTING_BALANCE = Number(process.env.PAPER_STARTING_BALANCE || 100000);
@@ -158,7 +159,22 @@ async function acceptRecommendation(identityId, recId, notionalUsd) {
   // Refused rather than converted. Buying an INR-quoted stock with a USD wallet
   // needs an FX rate, and a rate invented here would make every number after it
   // wrong in a way nothing would flag.
-  if (quoteCurrency && quoteCurrency !== walletCurrency) {
+  const verdict = policy.evaluate('accept', {
+    ticker: rec.ticker,
+    identityId,
+    portfolio: 'user',
+    quoteCurrency,
+    notional: Number(notionalUsd || 0),
+  });
+
+  if (!verdict.allowed) {
+    return err(
+      verdict.refusals[0].guard === 'currency' ? 'CURRENCY_MISMATCH' : 'REFUSED',
+      verdict.refusals.map((r) => r.reason).join('; ') + '. Nothing was done.'
+    );
+  }
+
+  if (false) {
     return err(
       'CURRENCY_MISMATCH',
       rec.ticker + ' is quoted in ' + quoteCurrency + ' and this wallet holds ' + walletCurrency +
@@ -434,7 +450,8 @@ function openUserTrade(db, o) {
       o.signalPrice ? Number((((o.fillPrice - o.signalPrice) / o.signalPrice) * 100).toFixed(3)) : null,
       o.quantity,
       Number(o.notional.toFixed(2)),
-      Number(o.notional.toFixed(2)),
+      Number(((o.notional * 15) / 10000).toFixed(2)),
+      Number((o.notional + (o.notional * 15) / 10000).toFixed(2)),
       (process.env.PAPER_BENCHMARK || 'XLV').toUpperCase(),
       o.benchAtFill ?? null,
       HOLD + 'd hold, accepted manually',
