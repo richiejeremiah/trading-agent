@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "description": "What each store holds, decided rather than guessed. The heuristics classify by name, which works until a name is unusual — these are the ones that matter here, stated explicitly so the Guard tier reasons about the right things.",
+  "resources": {
+    "db:paper_positions": "money",
+    "db:paper_orders": "money",
+    "db:agent_wallet": "money",
+    "db:agent_wallet_ledger": "money",
+    "db:agent_recommendation": "internal",
+    "db:trade": "money",
+    "db:trade_mark": "internal",
+    "db:agent_identity": "patient",
+    "db:agent_auth_code": "patient",
+    "db:agent_watchlist": "internal",
+    "db:kg_event": "internal",
+    "db:kg_company": "internal",
+    "db:kg_relationship": "internal",
+    "db:kg_estimate": "internal"
+  },
+  "unclassified": []
+}
