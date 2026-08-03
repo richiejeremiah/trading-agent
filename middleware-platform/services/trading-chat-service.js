@@ -1,6 +1,7 @@
 'use strict';
 
 const { runTradingTurn } = require('../services/trading-turn-resolver');
+const { resolveCaller } = require('./caller');
 
 const AGENT_ENABLED = String(process.env.TRADING_AGENT_ENABLED || '').trim() === '1';
 
@@ -37,7 +38,9 @@ async function handleTradingChatMessage(req) {
     // No identity. The web surface has no verification, so it gets research
     // and quotes and no wallet — stated explicitly rather than left to a null
     // that happens to land in the unowned bucket.
-    identityId: null,
+    // Anonymous, and said so. This was identityId null, which was correct
+    // by accident — nothing stopped a later change from passing something else.
+    caller: resolveCaller('web').data,
     message,
     channel: 'chat',
   });

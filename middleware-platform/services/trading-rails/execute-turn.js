@@ -22,6 +22,7 @@ const { getAllowedToolNames } = require('./tool-allowlists');
 const db = require('../../database');
 const llm = require('../llm-router');
 const TradingToolExecutor = require('../trading-tool-executor');
+const { assertCaller, identityIdOf } = require('../caller');
 
 /** How many times the model may call tools before it has to answer. */
 const MAX_STEPS = 6;
@@ -116,6 +117,13 @@ function priorMessages(sessionId) {
 }
 
 async function executeTurn(opts = {}) {
+  // Identity arrives resolved or not at all. A bare number is a claim; this
+  // refuses to act on claims. Anything that reaches here without going through
+  // resolveCaller() is a programming error and should stop rather than quietly
+  // become an anonymous session reading someone else's portfolio.
+  const caller = assertCaller(opts.caller, 'executeTurn');
+  const callerIdentityId = identityIdOf(caller);
+
   const sessionId =
     String(opts.session_id || opts.sessionId || '').trim() || `sess-${Date.now()}`;
 
@@ -194,7 +202,7 @@ async function executeTurn(opts = {}) {
 
         let content;
         try {
-          const out = await TradingToolExecutor.execute(name, args, { sessionId, state, identityId: opts.identityId ?? null });
+          const out = await TradingToolExecutor.execute(name, args, { sessionId, state, identityId: callerIdentityId, caller });
           content = JSON.stringify(out);
         } catch (e) {
           // The failure goes back to the model as a result, not as a crash —

@@ -18,6 +18,7 @@
  */
 
 const identity = require('./identity-service');
+const { resolveCaller } = require('./caller');
 const wallet = require('./wallet-service');
 const metrics = require('./metrics-service');
 const report = require('./trade-reporting');
@@ -277,12 +278,18 @@ async function handleMessage(msg) {
     return;
   }
 
-  const who = identity.getIdentity(chatId);
+  // One resolution for the whole turn. Everything below uses this rather
+  // than reaching for the identity again — five hand-passed ids were five
+  // chances to pass the wrong one, or none.
+  const resolved = resolveCaller('telegram', chatId);
 
-  if (!who) {
+  if (!resolved.ok) {
     await handleEnrolment(chatId, text);
     return;
   }
+
+  const caller = resolved.data;
+  const who = { id: caller.identityId, email: caller.email };
 
   identity.touch(chatId);
 
@@ -412,7 +419,7 @@ async function handleMessage(msg) {
   try {
     const result = await executeTurn({
       sessionId: 'id:' + who.id,
-      identityId: who.id,
+      caller,
       message: text,
       channel: 'telegram',
     });
