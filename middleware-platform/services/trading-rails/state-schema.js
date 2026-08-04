@@ -14,10 +14,21 @@ const DEFAULT_STATE = {
   flags: {},
 };
 
+const { ALLOWLISTS } = require('./tool-allowlists');
+
+function validStep(lane, step) {
+  const laneMap = ALLOWLISTS[lane];
+  if (!laneMap || !step) return DEFAULT_STATE.step;
+  return Object.prototype.hasOwnProperty.call(laneMap, step) ? step : DEFAULT_STATE.step;
+}
+
 function normalizeState(partial = {}) {
   return {
     active_lane: partial.active_lane || DEFAULT_STATE.active_lane,
-    step: partial.step || DEFAULT_STATE.step,
+    // A step nobody declared falls back to the default rather than being
+    // written through. It used to persist, and a persisted bad step granted the
+    // first step's tools on every turn after.
+    step: validStep(partial.active_lane || DEFAULT_STATE.active_lane, partial.step),
     flags: partial.flags && typeof partial.flags === 'object' ? partial.flags : {},
   };
 }

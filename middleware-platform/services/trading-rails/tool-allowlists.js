@@ -22,7 +22,11 @@ const ALLOWLISTS = {
 function getAllowedToolNames(lane, step) {
   const laneMap = ALLOWLISTS[lane];
   if (!laneMap) return [];
-  return [...(laneMap[step] || laneMap[Object.keys(laneMap)[0]] || [])];
+  // An unknown step grants nothing. This fell back to the first step's list,
+  // so a misspelled step — reveiw for review — silently handed out whatever the
+  // first step allowed. An invalid input should refuse, not approximate.
+  if (!Object.prototype.hasOwnProperty.call(laneMap, step)) return [];
+  return [...(laneMap[step] || [])];
 }
 
 module.exports = { ALLOWLISTS, getAllowedToolNames };
