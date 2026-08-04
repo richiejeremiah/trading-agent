@@ -114,7 +114,13 @@ async function getPortfolio(_args, context) {
 
 function getTradeHistory(args, context) {
   const db = getDb();
-  const limit = Math.min(100, Math.max(1, Number((args && args.limit) || 20)));
+  // Number of anything unparseable is NaN, and Math.max(1, NaN) is NaN — so a
+  // model sending a string or an object reached the driver and was refused by
+  // sqlite on a type mismatch. Safe by accident: the protection came from the
+  // binding layer rather than a check, and the error said nothing the model
+  // could act on.
+  const raw = Number(args && args.limit);
+  const limit = Number.isFinite(raw) ? Math.min(100, Math.max(1, Math.floor(raw))) : 20;
   const identityId = identityOf(context);
 
   const rows = db
