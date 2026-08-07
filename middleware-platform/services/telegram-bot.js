@@ -24,6 +24,7 @@ const metrics = require('./metrics-service');
 const report = require('./trade-reporting');
 const { sendVerificationCode, activeProvider } = require('./email-sender');
 const { executeTurn } = require('./trading-rails/execute-turn');
+const { handlePaperCommand } = require('./telegram-paper-commands');
 
 const API = 'https://api.telegram.org/bot';
 const POLL_TIMEOUT_SEC = 25;
@@ -251,6 +252,19 @@ async function handleMessage(msg) {
   const chatId = String(msg.chat && msg.chat.id);
   const text = String(msg.text || '').trim();
   if (!chatId || !text) return;
+
+  // Paper wallet money commands (fund/withdraw/balance/confirm/cancel) — gated by
+  // TELEGRAM_ALLOWED_USER_IDS inside telegram-paper-commands. Route before other handlers.
+  const paperOut = handlePaperCommand({
+    userId: msg.from && msg.from.id,
+    chatId,
+    text,
+    messageId: msg.message_id,
+  });
+  if (paperOut && paperOut.handled) {
+    if (paperOut.reply != null) await say(chatId, paperOut.reply);
+    return;
+  }
 
   if (text === '/start') {
     const who = identity.getIdentity(chatId);

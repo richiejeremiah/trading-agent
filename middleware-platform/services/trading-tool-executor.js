@@ -16,12 +16,14 @@
  *   raw_json carries the fill price and quantity for anything that needs them
  *   later.
  *
+ * Hard rule: assertProposeOnlyTool runs first — never submit/broker/alpaca_order.
  * Contract: these throw on failure with a `code` property, matching the stub
  * they replaced. The newer clients return an ok/error union instead, so this is
  * the boundary where one becomes the other.
  */
 
 const { getAllowedToolNames } = require('./trading-rails/tool-allowlists');
+const { assertProposeOnlyTool } = require('./trading-rails/propose-only-guard');
 const { getCurrentPrice } = require('./market-data-client');
 const { getDb } = require('../database');
 const { positionsFor } = require('./positions');
@@ -159,6 +161,13 @@ class TradingToolExecutor {
   }
 
   static async execute(toolName, args, context) {
+    const guard = assertProposeOnlyTool(toolName);
+    if (!guard.ok) {
+      const err = new Error(guard.reason);
+      err.code = guard.code;
+      throw err;
+    }
+
     switch (toolName) {
       case 'get_quote':
         return getQuote(args);

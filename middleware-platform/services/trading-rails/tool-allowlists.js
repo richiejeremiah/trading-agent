@@ -1,15 +1,29 @@
 'use strict';
 
+/**
+ * Lane/step tool allowlists for the LLM agent.
+ *
+ * Hard rule: LLM tools are read + propose only.
+ * NO submit / broker / alpaca_order tools — execution service owns broker.submitOrder.
+ *
+ * execute lane (Rail 3) — CANCELLED as a submit path; only propose/preview tools remain.
+ */
+
 const ALLOWLISTS = {
   research: {
     query: ['search_biotech_news', 'get_quote'],
     summarize: ['search_biotech_news', 'get_catalysts'],
   },
   signal: {
-    analyze: ['generate_signal'],
-    preview: ['generate_signal'],
+    analyze: ['generate_signal', 'propose_action'],
+    preview: ['generate_signal', 'propose_action'],
   },
-  // execute lane (Rail 3) — CANCELLED
+  // execute lane (Rail 3) — CANCELLED as broker submit; propose-only tools only
+  execute: {
+    // Preview / confirm UX only — never paper_submit_order or broker tools
+    confirm: ['paper_preview_order', 'propose_action'],
+    submit: ['paper_preview_order', 'propose_action'],
+  },
   review: {
     portfolio: ['get_portfolio', 'get_trade_history'],
     postmortem: ['get_trade_history'],
@@ -29,4 +43,15 @@ function getAllowedToolNames(lane, step) {
   return [...(laneMap[step] || [])];
 }
 
-module.exports = { ALLOWLISTS, getAllowedToolNames };
+/** Flatten all allowlisted tool names (for tests / docs). */
+function listAllAllowedTools() {
+  const names = new Set();
+  for (const lane of Object.values(ALLOWLISTS)) {
+    for (const tools of Object.values(lane)) {
+      for (const t of tools) names.add(t);
+    }
+  }
+  return [...names];
+}
+
+module.exports = { ALLOWLISTS, getAllowedToolNames, listAllAllowedTools };

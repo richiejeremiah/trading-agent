@@ -15,6 +15,9 @@
  * Rail 3 stays blocked. This loop can read quotes, positions and history; it
  * cannot place an order, because no tool that places one is exposed to it.
  * That boundary is the point of the lane system and is not worked around here.
+ *
+ * Propose-only: LLM may read/propose only. Broker submitOrder is owned by
+ * services/execution — never invoked from this turn or LLM allowlists.
  */
 
 const { normalizeState } = require('./state-schema');

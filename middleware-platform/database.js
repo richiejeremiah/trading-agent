@@ -10,7 +10,8 @@ const DB_PATH = process.env.TRADING_DB_PATH || path.join(DATA_DIR, 'trading.sqli
 let _db = null;
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  const dir = path.dirname(DB_PATH);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
 }
 
 function getDb() {
@@ -43,6 +44,10 @@ function runMigrations(db) {
   migration9.up(db);
   const migration10 = require('./migrations/010_policy_trace');
   migration10.up(db);
+  const migration11 = require('./migrations/011_paper_wallets');
+  migration11.up(db);
+  const migration12 = require('./migrations/012_paper_orders_broker');
+  migration12.up(db);
 }
 
 function closeDb() {
@@ -100,6 +105,73 @@ function listTradingHistory(sessionId, limit = 20) {
     .reverse();
 }
 
+function getPaperWalletBalance(walletId) {
+  const id = walletId || String(process.env.PAPER_WALLET_ID || 'default').trim() || 'default';
+  const row = getDb()
+    .prepare(`SELECT wallet_id, cash_balance, updated_at, updated_by FROM paper_wallets WHERE wallet_id = ?`)
+    .get(id);
+  if (!row) return null;
+  return {
+    wallet_id: row.wallet_id,
+    cash_balance: Number(row.cash_balance),
+    updated_at: row.updated_at,
+    updated_by: row.updated_by,
+  };
+}
+
+function getPaperOrderById(orderId) {
+  return getDb().prepare(`SELECT * FROM paper_orders WHERE id = ?`).get(orderId) || null;
+}
+
+function getPaperOrderByClientId(clientOrderId) {
+  return (
+    getDb()
+      .prepare(`SELECT * FROM paper_orders WHERE client_order_id = ?`)
+      .get(clientOrderId) || null
+  );
+}
+
+function listPaperOrders({ walletId, status, limit = 50 } = {}) {
+  const id = walletId || String(process.env.PAPER_WALLET_ID || 'default').trim() || 'default';
+  if (status) {
+    return getDb()
+      .prepare(
+        `SELECT * FROM paper_orders WHERE wallet_id = ? AND status = ? ORDER BY id DESC LIMIT ?`
+      )
+      .all(id, status, limit);
+  }
+  return getDb()
+    .prepare(`SELECT * FROM paper_orders WHERE wallet_id = ? ORDER BY id DESC LIMIT ?`)
+    .all(id, limit);
+}
+
+function getPaperPosition(ticker) {
+  const row = getDb()
+    .prepare(`SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions WHERE ticker = ?`)
+    .get(String(ticker || '').toUpperCase());
+  if (!row) return null;
+  return {
+    ticker: row.ticker,
+    quantity: Number(row.quantity),
+    avg_cost: Number(row.avg_cost),
+    updated_at: row.updated_at,
+  };
+}
+
+function listPaperPositions() {
+  return getDb()
+    .prepare(
+      `SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions WHERE quantity != 0 ORDER BY ticker`
+    )
+    .all()
+    .map((r) => ({
+      ticker: r.ticker,
+      quantity: Number(r.quantity),
+      avg_cost: Number(r.avg_cost),
+      updated_at: r.updated_at,
+    }));
+}
+
 module.exports = {
   db: { get prepare() { return getDb().prepare.bind(getDb()); } },
   getDb,
@@ -109,4 +181,10 @@ module.exports = {
   upsertTradingSessionProjection,
   appendTradingHistory,
   listTradingHistory,
+  getPaperWalletBalance,
+  getPaperOrderById,
+  getPaperOrderByClientId,
+  listPaperOrders,
+  getPaperPosition,
+  listPaperPositions,
 };
