@@ -517,6 +517,48 @@ function stop() {
   running = false;
 }
 
+/**
+ * Testable Update entry (paper money commands). Full chat turns still go through
+ * handleMessage via polling; this path only routes slash paper-wallet commands.
+ */
+async function processUpdate(update, opts = {}) {
+  if (!update || typeof update !== 'object') {
+    return { reply: null, handled: false };
+  }
+
+  let msg = null;
+  if (update.message && update.message.text) {
+    msg = update.message;
+  } else if (update.callback_query) {
+    const cq = update.callback_query;
+    const data = cq.data || '';
+    let text = data;
+    if (data === 'confirm_fund') text = '/confirm_fund';
+    else if (data === 'confirm_withdraw') text = '/confirm_withdraw';
+    else if (data === 'cancel') text = '/cancel';
+    else if (!data.startsWith('/')) return { reply: null, handled: false };
+    msg = {
+      from: cq.from,
+      chat: cq.message && cq.message.chat,
+      text,
+      message_id: cq.message && cq.message.message_id,
+    };
+  }
+  if (!msg) return { reply: null, handled: false };
+
+  const chatId = String(msg.chat && msg.chat.id);
+  const out = handlePaperCommand({
+    userId: msg.from && msg.from.id,
+    chatId,
+    text: msg.text,
+    messageId: msg.message_id,
+  });
+  if (out && out.handled && out.reply != null && typeof opts.sendReply === 'function' && chatId) {
+    await opts.sendReply(chatId, out.reply);
+  }
+  return out || { reply: null, handled: false };
+}
+
 // Used by the scheduler to announce new recommendations. Fails quietly — a
 // notification that cannot be delivered should not take down the cycle that
 // produced it.
@@ -524,4 +566,4 @@ async function notify(chatId, text, html) {
   await say(chatId, text, html);
 }
 
-module.exports = { start, stop, notify };
+module.exports = { start, stop, notify, processUpdate, handleMessage };

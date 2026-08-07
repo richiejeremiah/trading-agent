@@ -147,7 +147,10 @@ function listPaperOrders({ walletId, status, limit = 50 } = {}) {
 
 function getPaperPosition(ticker) {
   const row = getDb()
-    .prepare(`SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions WHERE ticker = ?`)
+    .prepare(
+      `SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions
+       WHERE identity_id IS NULL AND ticker = ?`
+    )
     .get(String(ticker || '').toUpperCase());
   if (!row) return null;
   return {
@@ -161,7 +164,8 @@ function getPaperPosition(ticker) {
 function listPaperPositions() {
   return getDb()
     .prepare(
-      `SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions WHERE quantity != 0 ORDER BY ticker`
+      `SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions
+       WHERE identity_id IS NULL AND quantity != 0 ORDER BY ticker`
     )
     .all()
     .map((r) => ({

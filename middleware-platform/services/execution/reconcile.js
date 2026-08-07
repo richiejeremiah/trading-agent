@@ -14,7 +14,8 @@ function normalizeQty(n) {
 function loadLocalPositions(db) {
   const rows = db
     .prepare(
-      `SELECT ticker, quantity, avg_cost FROM paper_positions WHERE quantity != 0 ORDER BY ticker`
+      `SELECT ticker, quantity, avg_cost FROM paper_positions
+       WHERE identity_id IS NULL AND quantity != 0 ORDER BY ticker`
     )
     .all();
   return rows.map((r) => ({

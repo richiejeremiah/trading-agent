@@ -55,7 +55,8 @@ class PaperBroker extends BrokerInterface {
     const db = this._getDb();
     const rows = db
       .prepare(
-        `SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions WHERE quantity != 0 ORDER BY ticker`
+        `SELECT ticker, quantity, avg_cost, updated_at FROM paper_positions
+         WHERE identity_id IS NULL AND quantity != 0 ORDER BY ticker`
       )
       .all();
     return rows.map((r) => ({
@@ -135,7 +136,9 @@ class PaperBroker extends BrokerInterface {
       // Sell: ensure position qty
       if (side === 'sell') {
         const pos = db
-          .prepare(`SELECT quantity, avg_cost FROM paper_positions WHERE ticker = ?`)
+          .prepare(
+            `SELECT quantity, avg_cost FROM paper_positions WHERE identity_id IS NULL AND ticker = ?`
+          )
           .get(symbol);
         const have = pos ? Number(pos.quantity) : 0;
         if (have + 1e-9 < qty) {
@@ -219,8 +222,12 @@ class PaperBroker extends BrokerInterface {
   }
 
   _applyPositionFill(db, symbol, side, qty, price) {
+    // After identity migration, PK is (identity_id, ticker). PaperBroker owns the
+    // null-identity rows (shared paper spine); SQLite does not upsert on NULL PKs.
     const pos = db
-      .prepare(`SELECT quantity, avg_cost FROM paper_positions WHERE ticker = ?`)
+      .prepare(
+        `SELECT quantity, avg_cost FROM paper_positions WHERE identity_id IS NULL AND ticker = ?`
+      )
       .get(symbol);
     let quantity = pos ? Number(pos.quantity) : 0;
     let avgCost = pos ? Number(pos.avg_cost) : 0;
@@ -237,14 +244,17 @@ class PaperBroker extends BrokerInterface {
       }
     }
 
-    db.prepare(
-      `INSERT INTO paper_positions (ticker, quantity, avg_cost, updated_at)
-       VALUES (?, ?, ?, datetime('now'))
-       ON CONFLICT(ticker) DO UPDATE SET
-         quantity = excluded.quantity,
-         avg_cost = excluded.avg_cost,
-         updated_at = datetime('now')`
-    ).run(symbol, quantity, avgCost);
+    if (pos) {
+      db.prepare(
+        `UPDATE paper_positions SET quantity = ?, avg_cost = ?, updated_at = datetime('now')
+         WHERE identity_id IS NULL AND ticker = ?`
+      ).run(quantity, avgCost, symbol);
+    } else {
+      db.prepare(
+        `INSERT INTO paper_positions (identity_id, ticker, quantity, avg_cost, updated_at)
+         VALUES (NULL, ?, ?, ?, datetime('now'))`
+      ).run(symbol, quantity, avgCost);
+    }
   }
 
   async cancelOrder(orderId) {
